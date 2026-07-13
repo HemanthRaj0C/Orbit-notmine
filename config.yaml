@@ -1,0 +1,50 @@
+# PowerLayer — Global Configuration
+# Works on any Linux distro with cgroups v2 enabled.
+# Paths that say "auto" are detected at runtime from sysfs.
+
+# ── Storage ──────────────────────────────────────────────────
+storage:
+  db_path: "data/powerlayer.db"      # relative to project root
+  flush_interval_seconds: 30         # BatchedWriter flush cadence
+  flush_batch_size: 100              # flush when buffer hits this
+  raw_retention_hours: 48            # raw events older than this are aggregated + deleted
+
+# ── Collector ────────────────────────────────────────────────
+collector:
+  poll_interval_idle: 45             # seconds between snapshots when system is idle
+  poll_interval_active: 7            # seconds between snapshots when activity detected
+  battery_path: "auto"              # "auto" = scan /sys/class/power_supply/BAT*/
+  network_interface: "auto"          # "auto" = first non-loopback from /sys/class/net/
+  watch_dirs:                        # inotify-watched dirs for sync-event triggers
+    - "~/Dropbox"
+    - "~/.config"
+  xprintidle_available: "auto"       # "auto" = detect at startup; fallback to proc-based
+
+# ── Policy Engine ────────────────────────────────────────────
+policy:
+  whitelist:
+    - systemd
+    - sshd
+    - pulseaudio
+    - pipewire
+    - Xorg
+    - Xwayland
+    - NetworkManager
+    - dbus-daemon
+  confidence_threshold: 0.90                  # minimum confidence when personalization data exists
+  fresh_start_confidence_threshold: 0.97      # stricter before enough user data is collected
+  min_observations_for_personalization: 20    # how many observations before switching to relaxed threshold
+
+# ── Shadow Mode (MUST stay true until you trust the pipeline) ─
+shadow_mode: true    # when true, enforce() is NEVER called — decisions are only logged
+
+# ── Enforcer ─────────────────────────────────────────────────
+enforcer:
+  cgroup_root: "/sys/fs/cgroup/powerlayer"
+  cpu_throttle_weight: 50            # cpu.weight value when throttling (default=100)
+  network_throttle_rate: "500kbit"   # tc rate limit for throttled apps
+
+# ── Logging ──────────────────────────────────────────────────
+logging:
+  level: "INFO"                      # DEBUG | INFO | WARNING | ERROR
+  log_file: "data/powerlayer.log"

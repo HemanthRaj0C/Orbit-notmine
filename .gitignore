@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# PowerLayer runtime data
+data/powerlayer.db
+data/powerlayer.db-shm
+data/powerlayer.db-wal
+data/powerlayer.log
+
+# Trained model artifact (large binary — regenerate from train_base_model.py)
+model/base_model.joblib
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/

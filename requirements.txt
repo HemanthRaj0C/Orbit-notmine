@@ -1,0 +1,8 @@
+psutil>=5.9
+scikit-learn>=1.4
+pandas>=2.0
+matplotlib>=3.8
+typer>=0.9
+pyyaml>=6.0
+watchdog>=4.0
+joblib>=1.3
