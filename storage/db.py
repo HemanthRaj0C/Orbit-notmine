@@ -240,10 +240,12 @@ def log_action(
     conn: sqlite3.Connection,
     *,
     app_name: str,
-    prediction: str | None,
-    action: str,
-    confidence: float | None,
-    shadow_mode: bool,
+    pid: int | None = None,
+    predicted_label: str | None = None,
+    action_taken: str,
+    reason: str | None = None,
+    confidence: float | None = None,
+    shadow_mode: bool = True,
     battery_before: float | None = None,
     battery_after: float | None = None,
     reverted: bool = False,
@@ -256,15 +258,17 @@ def log_action(
     conn.execute(
         """
         INSERT INTO action_log
-            (timestamp, app_name, prediction, action, confidence,
+            (timestamp, app_name, pid, predicted_label, action_taken, reason, confidence,
              shadow_mode, battery_before, battery_after, reverted, enforcer_cmd)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             int(time.time()),
             app_name,
-            prediction,
-            action,
+            pid,
+            predicted_label,
+            action_taken,
+            reason,
             confidence,
             int(shadow_mode),
             battery_before,

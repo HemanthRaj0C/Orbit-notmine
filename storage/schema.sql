@@ -54,14 +54,16 @@ CREATE TABLE IF NOT EXISTS action_log (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp       INTEGER NOT NULL,
     app_name        TEXT    NOT NULL,
-    prediction      TEXT,               -- 'idle_likely' | 'background_unused' | 'active_needed'
-    action          TEXT    NOT NULL,   -- 'throttle_sync' | 'batch_notifications' | 'no_action'
-    confidence      REAL,               -- corrected confidence score at decision time
-    shadow_mode     INTEGER DEFAULT 1,  -- 1 = was in shadow mode (enforce not called), 0 = enforced
-    battery_before  REAL,               -- battery % before action
-    battery_after   REAL,               -- battery % after next measurement cycle
-    reverted        INTEGER DEFAULT 0,  -- 1 if user called `powerlayer override <app>`
-    enforcer_cmd    TEXT                -- exact tc/cgroup command that was run (for explain)
+    pid             INTEGER,                -- process ID at time of decision
+    predicted_label TEXT,                   -- 'active_needed' | 'idle_likely' | 'background_unused'
+    confidence      REAL,                   -- corrected model confidence at decision time
+    action_taken    TEXT    NOT NULL,       -- 'allow' | 'throttle' | 'skip'
+    reason          TEXT,                   -- human-readable explanation (for CLI explain)
+    shadow_mode     INTEGER DEFAULT 1,      -- 1 = shadow mode (enforcer NOT called), 0 = enforced
+    battery_before  REAL,                   -- battery % before action (for evaluation)
+    battery_after   REAL,                   -- battery % after next cycle (for evaluation)
+    reverted        INTEGER DEFAULT 0,      -- 1 if user ran `powerlayer override <app>`
+    enforcer_cmd    TEXT                    -- exact tc/cgroup command run (for explain)
 );
 
 CREATE INDEX IF NOT EXISTS idx_action_app  ON action_log(app_name);

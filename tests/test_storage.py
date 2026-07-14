@@ -253,8 +253,10 @@ def test_log_action():
     log_action(
         conn,
         app_name="dropbox",
-        prediction="idle_likely",
-        action="throttle_sync",
+        pid=123,
+        predicted_label="idle_likely",
+        action_taken="throttle",
+        reason="test",
         confidence=0.94,
         shadow_mode=True,
         battery_before=82.0,
@@ -262,8 +264,8 @@ def test_log_action():
     conn.commit()
     row = conn.execute("SELECT * FROM action_log").fetchone()
     assert row is not None
-    # action is column index 4 (0-indexed: id, timestamp, app_name, prediction, action, ...)
-    print(f"  ✓ log_action() inserts correctly → action='{row[4]}'")
+    # action_taken is column index 6 (0-indexed: id, timestamp, app_name, pid, predicted_label, confidence, action_taken, ...)
+    print(f"  ✓ log_action() inserts correctly → action_taken='{row[6]}'")
     conn.close()
 
 
