@@ -23,7 +23,7 @@ import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = _ROOT / "data" / "powerlayer.db"
+DB_PATH = _ROOT / "data" / "runtime" / "demo.db"
 
 random.seed(42)
 now = int(time.time())
@@ -138,10 +138,14 @@ def seed(conn: sqlite3.Connection) -> None:
 
 
 if __name__ == "__main__":
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not DB_PATH.exists():
-        print(f"DB not found at {DB_PATH}")
-        print("Run the schema first: python -c \"from storage.db import get_connection; get_connection()\"")
-        sys.exit(1)
+        schema_path = _ROOT / "storage" / "schema.sql"
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.executescript(schema_path.read_text())
+        conn.commit()
+        conn.close()
+        print(f"Initialized database with schema at {DB_PATH}")
 
     conn = sqlite3.connect(str(DB_PATH))
     seed(conn)

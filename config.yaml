@@ -4,7 +4,7 @@
 
 # ── Storage ──────────────────────────────────────────────────
 storage:
-  db_path: "data/powerlayer.db"      # relative to project root
+  db_path: "data/runtime/powerlayer.db"      # relative to project root
   flush_interval_seconds: 30         # BatchedWriter flush cadence
   flush_batch_size: 100              # flush when buffer hits this
   raw_retention_hours: 48            # raw events older than this are aggregated + deleted
@@ -47,4 +47,4 @@ enforcer:
 # ── Logging ──────────────────────────────────────────────────
 logging:
   level: "INFO"                      # DEBUG | INFO | WARNING | ERROR
-  log_file: "data/powerlayer.log"
+  log_file: "data/runtime/powerlayer.log"

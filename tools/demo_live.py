@@ -367,14 +367,9 @@ def main() -> None:
     if args.sim:
         FLUSH_INTERVAL = 15.0 if args.fast else 30.0
         BATCH_SIZE     = 20   if args.fast else 100
-        DB_PATH        = _ROOT / "data" / "demo.db"
+        DB_PATH        = _ROOT / "data" / "runtime" / "demo.db"
         mode           = "simulation  (fake apps, fake metrics)"
 
-        # Fresh DB every run
-        for suffix in ("", "-shm", "-wal"):
-            p = Path(str(DB_PATH) + suffix)
-            if p.exists():
-                p.unlink()
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         conn = get_connection(DB_PATH)
 

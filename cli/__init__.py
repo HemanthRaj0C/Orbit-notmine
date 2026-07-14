@@ -28,7 +28,7 @@ sys.path.insert(0, str(_ROOT))
 from cli.commands import cmd_status, cmd_explain, cmd_override, cmd_report
 
 
-DEFAULT_DB = _ROOT / "data" / "powerlayer.db"
+DEFAULT_DB = _ROOT / "data" / "runtime" / "powerlayer.db"
 
 
 def build_parser() -> argparse.ArgumentParser:
