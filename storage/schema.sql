@@ -42,9 +42,9 @@ CREATE INDEX IF NOT EXISTS idx_hourly_time ON events_hourly(hour_bucket);
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS user_corrections (
     app_name            TEXT    PRIMARY KEY,
-    user_bias           REAL    DEFAULT 0.0,    -- added to base model confidence, clamped [0,1]
-    observation_count   INTEGER DEFAULT 0,      -- how many EWM updates have been applied
-    last_updated        INTEGER                  -- Unix epoch of last update
+    correction_factor   REAL    DEFAULT 1.0,    -- multiplier applied to model proba at inference (>1=protect, <1=throttle)
+    observation_count   INTEGER DEFAULT 0,      -- how many override commands have been applied
+    last_updated_ts     INTEGER                  -- Unix epoch of last update
 );
 
 -- ─────────────────────────────────────────────────────────────────────────────
