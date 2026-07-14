@@ -144,6 +144,17 @@ def run(
         "Aggregator: wrote %d hour-buckets, deleted %d raw rows (>%dh old).",
         buckets_written, rows_deleted, retention_hours,
     )
+
+    # ── Step 4: WAL checkpoint ────────────────────────────────────────────────
+    # Without periodic checkpointing, the .db-wal file can grow very large
+    # under continuous writes.  PASSIVE mode flushes WAL pages back into the
+    # main DB file without blocking any active readers or writers.
+    try:
+        conn.execute("PRAGMA wal_checkpoint(PASSIVE);")
+        logger.debug("Aggregator: WAL checkpoint completed.")
+    except Exception as exc:
+        logger.warning("Aggregator: WAL checkpoint failed: %s", exc)
+
     return {"buckets_written": buckets_written, "rows_deleted": rows_deleted}
 
 
