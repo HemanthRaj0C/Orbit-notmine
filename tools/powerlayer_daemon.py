@@ -1,20 +1,28 @@
 """
-tools/demo_live_predictions.py
-──────────────────────────────
-Real-time PowerLayer pipeline running on actual system processes.
+tools/powerlayer_daemon.py
+──────────────────────────
+PowerLayer — Main production daemon.
 
-Runs the collector, queries history from SQLite, engineers relative/temporal features,
-runs Random Forest predictions, applies user corrections, runs the policy engine,
-and executes throttling via cgroups v2/tc (if shadow_mode is false).
+Runs the full ML pipeline on actual system processes:
+  - Collects live process snapshots (CPU, network, battery)
+  - Engineers relative/temporal features per app
+  - Runs Random Forest predictions (3-class: active/idle/background)
+  - Applies per-user correction layer (personalization)
+  - Runs PolicyEngine → produces throttle / allow / skip decisions
+  - Enforces via cgroups v2 cpu.weight + tc network shaping (when --live)
+  - Sends desktop notifications on throttle/release transitions
+
+This is the file that systemd runs. The service unit calls it with --live.
+In shadow mode (default) it logs decisions but never actually throttles.
 
 Usage:
-  python tools/demo_live_predictions.py                # shadow mode (safe logging)
-  python tools/demo_live_predictions.py --live         # live mode (enforcement active!)
-  python tools/demo_live_predictions.py --interval 5   # poll interval (default: 7s)
+  python tools/powerlayer_daemon.py                  # shadow mode (safe, log only)
+  python tools/powerlayer_daemon.py --live           # live enforcement (real throttling)
+  python tools/powerlayer_daemon.py --interval 5     # poll every 5s (default: 7s)
 
 Writes to:
-  DB:  data/real_powerlayer.db
-  Log: data/real_powerlayer.log
+  DB:  data/runtime/sandbox.db
+  Log: data/runtime/sandbox.log
 """
 
 from __future__ import annotations
@@ -40,6 +48,7 @@ from model.base_model import PowerLayerModel
 from model.correction_layer import CorrectionLayer
 from policy.engine import PolicyEngine, Decision
 from enforcer import Enforcer
+from collector.monitor import detect_battery_path, read_battery_pct
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 DB_PATH = _ROOT / "data" / "runtime" / "sandbox.db"
@@ -47,7 +56,7 @@ LOG_PATH = _ROOT / "data" / "runtime" / "sandbox.log"
 
 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-logger = logging.getLogger("demo_live_predictions")
+logger = logging.getLogger("powerlayer_daemon")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -97,16 +106,34 @@ def _notify(title: str, body: str, urgency: str = "normal") -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Real-time PowerLayer Pipeline Demo")
+    parser = argparse.ArgumentParser(description="Real-time PowerLayer Pipeline Daemon")
     parser.add_argument("--live", action="store_true", help="Run with active enforcement (non-shadow)")
     parser.add_argument("--interval", type=int, default=7, help="Poll interval in seconds (default: 7)")
+    parser.add_argument("--db", default=None, help="Path to SQLite database")
     args = parser.parse_args()
 
+    # Load db path from config if not specified via CLI
+    db_path_str = args.db
+    if not db_path_str:
+        # Load from config.yaml
+        config_path = _ROOT / "config.yaml"
+        if config_path.exists():
+            import yaml
+            try:
+                with open(config_path) as f:
+                    cfg = yaml.safe_load(f)
+                    db_path_str = cfg.get("storage", {}).get("db_path", "data/runtime/powerlayer.db")
+            except Exception:
+                db_path_str = "data/runtime/powerlayer.db"
+        else:
+            db_path_str = "data/runtime/powerlayer.db"
+
+    db_path = Path(db_path_str) if Path(db_path_str).is_absolute() else _ROOT / db_path_str
     shadow_mode = not args.live
 
     print("\n" + "="*70)
     print("⚡ POWERLAYER — Real-time Live Prediction Daemon")
-    print(f"   DB Path     : {DB_PATH}")
+    print(f"   DB Path     : {db_path}")
     print(f"   Log Path    : {LOG_PATH}")
     print(f"   Shadow Mode : {shadow_mode} (use --live to enforce)")
     print(f"   Interval    : {args.interval}s")
@@ -114,7 +141,8 @@ def main() -> None:
 
     # 1. Initialize schema
     schema_path = _ROOT / "storage" / "schema.sql"
-    conn = sqlite3.connect(str(DB_PATH))
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path))
     conn.executescript(schema_path.read_text())
     conn.commit()
 
@@ -127,7 +155,7 @@ def main() -> None:
     model.load()
 
     # 3. Personalization & Policy Engine
-    corrector = CorrectionLayer(str(DB_PATH))
+    corrector = CorrectionLayer(str(db_path))
     policy_cfg = {
         "whitelist": ["systemd", "sshd", "pipewire", "pulseaudio", "Xorg", "Xwayland", "dbus-daemon", "NetworkManager"],
         "confidence_threshold": 0.85,
@@ -162,6 +190,13 @@ def main() -> None:
     last_net_ts = time.time()
     last_net_rx, last_net_tx = 0, 0
 
+    # Detect battery path
+    battery_dir = detect_battery_path()
+    if battery_dir:
+        print(f"   Battery Dir : {battery_dir}")
+    else:
+        print("   Battery Dir : Not detected (fallback to 100%)")
+
     print("Pipeline started successfully. Listening for active processes...")
     print("Press Ctrl+C to exit.\n")
 
@@ -173,6 +208,13 @@ def main() -> None:
             now = int(time.time())
             fg_pid = get_active_window_pid()
             procs = snapshot_processes(foreground_pid=fg_pid, min_cpu_pct=0.0)
+
+            # Get current real battery pct
+            battery_pct = 100.0
+            if battery_dir:
+                pct = read_battery_pct(battery_dir)
+                if pct is not None:
+                    battery_pct = pct
 
             # Clean active processes (filter out short-lived / kernel tasks)
             active_procs = [p for p in procs if p["cpu_pct"] >= 0.1 or p["event_type"] == "foreground"]
@@ -239,7 +281,7 @@ def main() -> None:
                 conn.execute(
                     """INSERT INTO events (timestamp, app_name, pid, event_type, cpu_pct, net_bytes, battery_pct)
                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                    (now, app_name, pid, p["event_type"], cpu_pct, 0, 100.0)
+                    (now, app_name, pid, p["event_type"], cpu_pct, 0, battery_pct)
                 )
                 conn.commit()
 

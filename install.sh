@@ -87,7 +87,7 @@ if command -v systemctl &>/dev/null && systemctl --user status &>/dev/null 2>&1;
     ok "systemd (user session) is available."
 else
     warn "systemd user session not detected. Service auto-start will be unavailable."
-    warn "You can still run PowerLayer manually: python ${PROJECT_ROOT}/collector/monitor.py"
+    warn "You can still run PowerLayer manually: python ${PROJECT_ROOT}/tools/powerlayer_daemon.py"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────

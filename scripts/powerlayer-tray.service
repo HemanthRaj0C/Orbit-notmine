@@ -21,7 +21,7 @@ Requires=powerlayer.service
 Type=simple
 
 # ExecStart is filled in by install.sh using the actual install path.
-ExecStart=@@PYTHON@@ @@PROJECT_ROOT@@/cli/tray.py --db @@PROJECT_ROOT@@/data/runtime/powerlayer.db
+ExecStart=@@PYTHON@@ @@PROJECT_ROOT@@/cli/tray.py --db @@PROJECT_ROOT@@/data/runtime/sandbox.db
 
 Restart=on-failure
 RestartSec=5

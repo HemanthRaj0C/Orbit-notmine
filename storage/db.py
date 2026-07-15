@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 # Resolved at runtime by load_config() in the main entry point;
 # db.py itself is config-agnostic so it can be used in unit tests with any path.
-_DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "powerlayer.db"
+_DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "data" / "runtime" / "sandbox.db"
 _SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 
 

@@ -23,7 +23,7 @@ import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = _ROOT / "data" / "runtime" / "demo.db"
+DB_PATH = _ROOT / "data" / "runtime" / "sandbox.db"
 
 random.seed(42)
 now = int(time.time())
@@ -138,15 +138,21 @@ def seed(conn: sqlite3.Connection) -> None:
 
 
 if __name__ == "__main__":
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    if not DB_PATH.exists():
-        schema_path = _ROOT / "storage" / "schema.sql"
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.executescript(schema_path.read_text())
-        conn.commit()
-        conn.close()
-        print(f"Initialized database with schema at {DB_PATH}")
+    import argparse
+    parser = argparse.ArgumentParser(description="Seed database with demo data")
+    parser.add_argument("--db", default=str(_ROOT / "data" / "runtime" / "demo.db"),
+                        help="Path to SQLite database to seed")
+    args = parser.parse_args()
 
-    conn = sqlite3.connect(str(DB_PATH))
+    target_db = Path(args.db)
+    target_db.parent.mkdir(parents=True, exist_ok=True)
+
+    # Initialize schema
+    schema_path = _ROOT / "storage" / "schema.sql"
+    conn = sqlite3.connect(str(target_db))
+    conn.executescript(schema_path.read_text())
+    conn.commit()
+    print(f"Initialized database with schema at {target_db}")
+
     seed(conn)
     conn.close()

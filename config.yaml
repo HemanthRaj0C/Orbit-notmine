@@ -4,10 +4,12 @@
 
 # ── Storage ──────────────────────────────────────────────────
 storage:
-  db_path: "data/runtime/powerlayer.db"      # relative to project root
+  db_path: "data/runtime/sandbox.db"      # relative to project root
   flush_interval_seconds: 30         # BatchedWriter flush cadence
   flush_batch_size: 100              # flush when buffer hits this
   raw_retention_hours: 48            # raw events older than this are aggregated + deleted
+  hourly_retention_days: 30          # hourly aggregate buckets older than this are deleted
+  action_log_retention_days: 90      # action_log entries older than this are deleted
 
 # ── Collector ────────────────────────────────────────────────
 collector:

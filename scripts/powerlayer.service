@@ -12,7 +12,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 [Unit]
-Description=PowerLayer Adaptive Battery Manager (Collector Daemon)
+Description=PowerLayer Adaptive Battery Manager
 Documentation=file:///HOWTO_RUN.md
 # Wait for the graphical desktop session to be available so that
 # process enumeration and idle detection tools (xprintidle, dbus) work.
@@ -23,7 +23,7 @@ Type=simple
 
 # ExecStart is filled in by install.sh using the actual install path.
 # Do not edit manually — re-run install.sh to update.
-ExecStart=@@PYTHON@@ @@PROJECT_ROOT@@/collector/monitor.py --config @@PROJECT_ROOT@@/config.yaml
+ExecStart=@@PYTHON@@ @@PROJECT_ROOT@@/tools/powerlayer_daemon.py --live --interval 7
 
 # Restart the daemon automatically if it crashes (e.g. transient DB error).
 Restart=on-failure

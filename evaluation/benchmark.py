@@ -378,7 +378,7 @@ def main() -> None:
         help="Battery sampling interval in seconds (default: 30)"
     )
     parser.add_argument(
-        "--db", default=str(_PROJECT_ROOT / "data" / "runtime" / "powerlayer.db"),
+        "--db", default=str(_PROJECT_ROOT / "data" / "runtime" / "sandbox.db"),
         help="Path to PowerLayer runtime DB for throttle stats"
     )
     parser.add_argument(

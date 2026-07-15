@@ -412,7 +412,7 @@ def main() -> None:
         BATCH_SIZE     = int(monitor._scfg.get("flush_batch_size", 100))
         FLUSH_INTERVAL = float(monitor._scfg.get("flush_interval_seconds", 30))
 
-        db_cfg = monitor._scfg.get("db_path", "data/powerlayer.db")
+        db_cfg = monitor._scfg.get("db_path", "data/runtime/sandbox.db")
         DB_PATH = (Path(db_cfg) if Path(db_cfg).is_absolute()
                    else _ROOT / db_cfg)
 

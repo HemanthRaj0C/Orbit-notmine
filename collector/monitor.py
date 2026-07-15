@@ -73,7 +73,7 @@ logger = logging.getLogger(__name__)
 # ── Config defaults (overridden by config.yaml) ───────────────────────────────
 _DEFAULTS = {
     "storage": {
-        "db_path":              "data/powerlayer.db",
+        "db_path":              "data/runtime/sandbox.db",
         "flush_interval_seconds": 30,
         "flush_batch_size":     100,
         "raw_retention_hours":  48,
@@ -296,7 +296,7 @@ class Monitor:
     def _setup(self) -> None:
         """Initialize DB, watchdog, sysfs paths."""
         # DB path relative to project root
-        db_path = _PROJECT_ROOT / self._scfg.get("db_path", "data/powerlayer.db")
+        db_path = _PROJECT_ROOT / self._scfg.get("db_path", "data/runtime/sandbox.db")
         self._conn = get_connection(db_path)
         self._writer = BatchedWriter(
             self._conn,
@@ -398,6 +398,8 @@ class Monitor:
         interval_idle:   int = self._ccfg.get("poll_interval_idle", 45)
         interval_active: int = self._ccfg.get("poll_interval_active", 7)
         retention_hours: int = self._scfg.get("raw_retention_hours", 48)
+        hourly_ret_days: int = self._scfg.get("hourly_retention_days", 30)
+        action_ret_days: int = self._scfg.get("action_log_retention_days", 90)
 
         logger.info(
             "Main loop started. Idle interval: %ds  Active interval: %ds",
@@ -417,7 +419,12 @@ class Monitor:
             now = time.time()
             if now - self._last_aggregation_ts >= self._aggregation_interval:
                 try:
-                    result = aggregator_run(self._conn, retention_hours=retention_hours)
+                    result = aggregator_run(
+                        self._conn,
+                        retention_hours=retention_hours,
+                        hourly_retention_days=hourly_ret_days,
+                        action_log_retention_days=action_ret_days,
+                    )
                     logger.info("Aggregation: %s", result)
                 except Exception as exc:
                     logger.error("Aggregation error: %s", exc)

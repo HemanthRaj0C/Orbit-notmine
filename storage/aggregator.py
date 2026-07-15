@@ -32,20 +32,36 @@ logger = logging.getLogger(__name__)
 # Raw rows older than this are aggregated → deleted.
 DEFAULT_RETENTION_HOURS: int = 48
 
+# How long to keep hourly aggregate buckets (days).
+# After this, hourly buckets are deleted (model training only needs ~30 days).
+DEFAULT_HOURLY_RETENTION_DAYS: int = 30
+
+# How long to keep action_log entries (days).
+# Long enough for the report/explain CLI, short enough to avoid bloat.
+DEFAULT_ACTION_LOG_RETENTION_DAYS: int = 90
+
 
 def run(
     conn: sqlite3.Connection,
     retention_hours: int = DEFAULT_RETENTION_HOURS,
+    hourly_retention_days: int = DEFAULT_HOURLY_RETENTION_DAYS,
+    action_log_retention_days: int = DEFAULT_ACTION_LOG_RETENTION_DAYS,
 ) -> dict[str, int]:
     """
     Aggregate raw events older than `retention_hours` hours into
     `events_hourly`, then delete them from `events`.
+
+    Also prunes old rows from:
+      - events_hourly : rows older than `hourly_retention_days` days
+      - action_log    : rows older than `action_log_retention_days` days
 
     Returns
     -------
     dict with keys:
         "buckets_written"  : number of (hour, app) groups aggregated
         "rows_deleted"     : number of raw event rows removed
+        "hourly_pruned"    : number of old hourly bucket rows deleted
+        "action_log_pruned": number of old action_log rows deleted
     """
     cutoff_ts = int(time.time()) - retention_hours * 3600
 
@@ -69,7 +85,20 @@ def run(
     if not new_buckets:
         logger.debug("Aggregator: nothing to aggregate (no events older than %dh).",
                      retention_hours)
-        return {"buckets_written": 0, "rows_deleted": 0}
+        # Still prune old hourly + action_log rows even if no new raw events
+        hourly_cutoff = int(time.time()) - hourly_retention_days * 86400
+        action_cutoff = int(time.time()) - action_log_retention_days * 86400
+        hourly_pruned  = conn.execute(
+            "DELETE FROM events_hourly WHERE hour_bucket < ?", (hourly_cutoff,)
+        ).rowcount
+        action_pruned  = conn.execute(
+            "DELETE FROM action_log WHERE timestamp < ?", (action_cutoff,)
+        ).rowcount
+        conn.commit()
+        return {
+            "buckets_written": 0, "rows_deleted": 0,
+            "hourly_pruned": hourly_pruned, "action_log_pruned": action_pruned,
+        }
 
     # ── Step 2: Upsert into events_hourly ────────────────────────────────────
     # We use INSERT OR REPLACE but we must merge with existing rows if the
@@ -145,7 +174,38 @@ def run(
         buckets_written, rows_deleted, retention_hours,
     )
 
-    # ── Step 4: WAL checkpoint ────────────────────────────────────────────────
+    # ── Step 5: Prune old events_hourly rows ─────────────────────────────────
+    # Keep the last N days of hourly aggregates; older ones are not needed
+    # for model training or the report CLI.
+    hourly_cutoff = int(time.time()) - hourly_retention_days * 86400
+    hourly_prune = conn.execute(
+        "DELETE FROM events_hourly WHERE hour_bucket < ?",
+        (hourly_cutoff,),
+    )
+    hourly_pruned = hourly_prune.rowcount
+    if hourly_pruned:
+        logger.info(
+            "Aggregator: pruned %d hourly buckets older than %d days.",
+            hourly_pruned, hourly_retention_days,
+        )
+
+    # ── Step 6: Prune old action_log rows ────────────────────────────────────
+    # Keep 90 days of decisions — enough for the report CLI and explain command.
+    action_cutoff = int(time.time()) - action_log_retention_days * 86400
+    action_prune = conn.execute(
+        "DELETE FROM action_log WHERE timestamp < ?",
+        (action_cutoff,),
+    )
+    action_pruned = action_prune.rowcount
+    if action_pruned:
+        logger.info(
+            "Aggregator: pruned %d action_log rows older than %d days.",
+            action_pruned, action_log_retention_days,
+        )
+
+    conn.commit()
+
+    # ── Step 7: WAL checkpoint ────────────────────────────────────────────────────
     # Without periodic checkpointing, the .db-wal file can grow very large
     # under continuous writes.  PASSIVE mode flushes WAL pages back into the
     # main DB file without blocking any active readers or writers.
@@ -155,7 +215,12 @@ def run(
     except Exception as exc:
         logger.warning("Aggregator: WAL checkpoint failed: %s", exc)
 
-    return {"buckets_written": buckets_written, "rows_deleted": rows_deleted}
+    return {
+        "buckets_written":   buckets_written,
+        "rows_deleted":      rows_deleted,
+        "hourly_pruned":     hourly_pruned,
+        "action_log_pruned": action_pruned,
+    }
 
 
 def get_stats(conn: sqlite3.Connection) -> dict[str, int]:

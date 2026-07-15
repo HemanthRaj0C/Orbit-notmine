@@ -375,12 +375,12 @@ class PowerLayerTray:
         """Open a terminal running `powerlayer status`."""
         py = sys.executable
         cli = str(_PROJECT_ROOT / "cli" / "__init__.py")
-        _launch_terminal(f"{py} {cli} status")
+        _launch_terminal(f"{py} {cli} --db {self._db_path} status")
 
     def _on_open_report(self, _item: Gtk.MenuItem) -> None:
         py = sys.executable
         cli = str(_PROJECT_ROOT / "cli" / "__init__.py")
-        _launch_terminal(f"{py} {cli} report")
+        _launch_terminal(f"{py} {cli} --db {self._db_path} report")
 
     def _on_shadow_toggle(self, item: Gtk.CheckMenuItem) -> None:
         self._shadow_mode = item.get_active()
@@ -427,9 +427,11 @@ class PowerLayerTray:
 def _launch_terminal(cmd: str) -> None:
     """
     Launch a command in the user's preferred terminal emulator.
-    Tries: gnome-terminal, konsole, xfce4-terminal, xterm (in that order).
+    Tries modern terminals first (kitty, alacritty, wezterm, foot),
+    then desktop defaults (gnome-terminal, konsole, xfce4-terminal, xterm).
     """
-    for term in ["gnome-terminal", "konsole", "xfce4-terminal", "xterm"]:
+    terms = ["kitty", "alacritty", "wezterm", "foot", "gnome-terminal", "konsole", "xfce4-terminal", "xterm"]
+    for term in terms:
         if not _which(term):
             continue
         try:
@@ -437,6 +439,8 @@ def _launch_terminal(cmd: str) -> None:
                 subprocess.Popen(["gnome-terminal", "--", "bash", "-c", f"{cmd}; read -p 'Press Enter…'"])
             elif term == "konsole":
                 subprocess.Popen(["konsole", "-e", "bash", "-c", f"{cmd}; read -p 'Press Enter…'"])
+            elif term in ["kitty", "alacritty", "wezterm", "foot"]:
+                subprocess.Popen([term, "bash", "-c", f"{cmd}; read -p 'Press Enter…'"])
             else:
                 subprocess.Popen([term, "-e", f"bash -c '{cmd}; read -p Press Enter…'"])
             return
@@ -460,7 +464,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--db",
-        default=str(_PROJECT_ROOT / "data" / "runtime" / "powerlayer.db"),
+        default=str(_PROJECT_ROOT / "data" / "runtime" / "sandbox.db"),
         help="Path to the PowerLayer runtime DB",
     )
     parser.add_argument("--debug", action="store_true")

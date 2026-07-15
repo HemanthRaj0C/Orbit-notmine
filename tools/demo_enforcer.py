@@ -118,7 +118,7 @@ def main() -> None:
 
     # ── 3. Set up correction layer (no DB needed for demo) ────────────────────
     step(3, "Setting up policy engine (shadow_mode=FALSE)...")
-    db_path = _ROOT / "data" / "powerlayer.db"
+    db_path = _ROOT / "data" / "runtime" / "sandbox.db"
 
     import sqlite3
     conn = sqlite3.connect(":memory:")

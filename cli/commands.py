@@ -37,7 +37,7 @@ from storage import aggregator
 def _open_db(db_path: Path) -> sqlite3.Connection:
     if not db_path.exists():
         print(red(f"  ✗ Database not found: {db_path}"))
-        print(dim("  Run the collector first: python collector/monitor.py"))
+        print(dim("  Run the daemon first: python tools/powerlayer_daemon.py --live"))
         sys.exit(1)
     return get_connection(str(db_path))
 
@@ -451,31 +451,38 @@ def cmd_report(db_path: Path, hours: int = 24) -> None:
     # ── Battery drain estimate ────────────────────────────────────────────────
     section("Battery Drain Estimate")
     try:
-        batt = conn.execute(
-            """
-            SELECT MIN(battery_pct), MAX(battery_pct), COUNT(*)
-            FROM   events
-            WHERE  timestamp > ?
-            """,
-            (since,),
+        b_start_row = conn.execute(
+            "SELECT battery_pct FROM events WHERE timestamp > ? AND battery_pct IS NOT NULL ORDER BY timestamp ASC LIMIT 1",
+            (since,)
         ).fetchone()
-    except Exception:
-        batt = None
+        b_end_row = conn.execute(
+            "SELECT battery_pct FROM events WHERE timestamp > ? AND battery_pct IS NOT NULL ORDER BY timestamp DESC LIMIT 1",
+            (since,)
+        ).fetchone()
+        cnt = conn.execute(
+            "SELECT COUNT(*) FROM events WHERE timestamp > ?",
+            (since,)
+        ).fetchone()[0]
 
-    if batt and batt[2] > 0:
-        bmin, bmax, cnt = batt
-        if bmin is not None and bmax is not None:
-            drain = bmax - bmin
-            rate  = drain / hours if hours > 0 else 0
-            kv("Starting battery",  f"{bmax:.1f}%")
-            kv("Ending battery",    f"{bmin:.1f}%")
-            kv("Total drain",       yellow(f"{drain:.1f}%") if drain > 0 else green("0%"))
-            kv("Avg drain/hour",    f"{rate:.2f}%/h")
-            kv("Events recorded",   str(cnt))
+        b_start = b_start_row[0] if b_start_row else None
+        b_end = b_end_row[0] if b_end_row else None
+    except Exception:
+        b_start, b_end, cnt = None, None, 0
+
+    if b_start is not None and b_end is not None and cnt > 0:
+        drain = b_start - b_end
+        rate  = drain / hours if hours > 0 else 0
+        kv("Starting battery",  f"{b_start:.1f}%")
+        kv("Ending battery",    f"{b_end:.1f}%")
+        if drain > 0:
+            kv("Total drain",    yellow(f"{drain:.1f}%"))
+            kv("Avg drain/hour", f"{rate:.2f}%/h")
         else:
-            print(dim("  (battery data not available — no battery detected?)"))
+            kv("Total drain",    green("0% (charging/stable)"))
+            kv("Avg drain/hour", "0.00%/h")
+        kv("Events recorded",   str(cnt))
     else:
-        print(dim("  (not enough data yet — run the collector for a while first)"))
+        print(dim("  (not enough battery data in this window)"))
 
     # ── Top resource hogs ─────────────────────────────────────────────────────
     section("Top CPU Consumers (avg, last window)")

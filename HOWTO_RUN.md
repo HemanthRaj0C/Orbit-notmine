@@ -112,7 +112,7 @@ every 7 seconds and buffers the active ones.
 | 0s   | Dashboard starts. **Collector Stats** shows Cycles=0. |
 | 3–5s | Cycles=1, Active procs=370+, Battery=100%, PSI shows a value |
 | 5–10s | Buffer starts filling (you can see `12/100`, `35/100`…) |
-| ~30s | **First flush fires** — 60–80 rows written to `powerlayer.db` |
+| ~30s | **First flush fires** — 60–80 rows written to `sandbox.db` |
 | 30s+ | `Flush History` shows `wrote 64 rows → DB now has 164 raw events` |
 | 30s+ | Recent Events table shows your actual processes with real CPU% |
 
@@ -130,10 +130,10 @@ every 7 seconds and buffers the active ones.
 **How long to run:** Run for at least **45–60 seconds** to see the full cycle:
 buffer filling → flush → recent events appearing. Press **Ctrl+C** to stop.
 
-**DB location:** `data/powerlayer.db` — this persists between runs. You can
+**DB location:** `data/runtime/sandbox.db` — this persists between runs. You can
 inspect it directly:
 ```bash
-sqlite3 data/powerlayer.db "SELECT app_name, cpu_pct, event_type FROM events ORDER BY timestamp DESC LIMIT 10;"
+sqlite3 data/runtime/sandbox.db "SELECT app_name, cpu_pct, event_type FROM events ORDER BY timestamp DESC LIMIT 10;"
 ```
 
 ---
@@ -155,9 +155,9 @@ python -m collector.monitor              # runs the full collector with live log
 python -m collector.monitor --debug      # verbose DEBUG output
 
 # ── Inspect the database directly ───────────────────────────────
-sqlite3 data/powerlayer.db ".tables"
-sqlite3 data/powerlayer.db "SELECT COUNT(*) FROM events;"
-sqlite3 data/powerlayer.db "SELECT app_name, cpu_pct, event_type, battery_pct FROM events ORDER BY timestamp DESC LIMIT 15;"
+sqlite3 data/runtime/sandbox.db ".tables"
+sqlite3 data/runtime/sandbox.db "SELECT COUNT(*) FROM events;"
+sqlite3 data/runtime/sandbox.db "SELECT app_name, cpu_pct, event_type, battery_pct FROM events ORDER BY timestamp DESC LIMIT 15;"
 ```
 
 ---
@@ -172,7 +172,7 @@ sqlite3 data/powerlayer.db "SELECT app_name, cpu_pct, event_type, battery_pct FR
 |---------|-----------|
 | **[Collector]** | `monitor.py` scanning processes every 7s (active) or 45s (idle) |
 | **[Buffer]** | In-memory Python list inside `BatchedWriter`. Never hits disk until flush. |
-| **[SQLite WAL]** | The `events` table in `powerlayer.db`. Written in one atomic transaction per flush. |
+| **[SQLite WAL]** | The `events` table in `sandbox.db`. Written in one atomic transaction per flush. |
 | **[events_hourly]** | Where rows go after 48h — raw data deleted, hourly averages kept. Keeps DB bounded. |
 
 | Dashboard field | Meaning |
@@ -245,7 +245,7 @@ The tray icon shows:
 
 Run the tray manually (for testing):
 ```bash
-python cli/tray.py --db data/runtime/powerlayer.db
+python cli/tray.py --db data/runtime/sandbox.db
 ```
 
 ---
@@ -314,7 +314,7 @@ powerlayer/
 ├── tests/                   # full test suite (111 tests)
 ├── tools/
 │   ├── demo_live.py             # simulation dashboard
-│   ├── demo_live_predictions.py # live enforcement pipeline
+│   ├── powerlayer_daemon.py  # production daemon (ML + enforcement)
 │   └── seed_demo_db.py          # seed demo data
 ├── config.yaml              # all tunable settings
 ├── install.sh               # cross-distro installer ← run this
