@@ -23,7 +23,7 @@ import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = _ROOT / "data" / "runtime" / "sandbox.db"
+# Default output: demo.db (overridden via --db arg below)
 
 random.seed(42)
 now = int(time.time())

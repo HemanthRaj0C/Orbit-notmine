@@ -20,9 +20,9 @@ Usage:
   python tools/powerlayer_daemon.py --live           # live enforcement (real throttling)
   python tools/powerlayer_daemon.py --interval 5     # poll every 5s (default: 7s)
 
-Writes to:
-  DB:  data/runtime/sandbox.db
-  Log: data/runtime/sandbox.log
+Writes to (production):
+  DB:  data/runtime/powerlayer.db    (pass --db to override)
+  Log: data/runtime/powerlayer.log
 """
 
 from __future__ import annotations
@@ -51,8 +51,8 @@ from enforcer import Enforcer
 from collector.monitor import detect_battery_path, read_battery_pct
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
-DB_PATH = _ROOT / "data" / "runtime" / "sandbox.db"
-LOG_PATH = _ROOT / "data" / "runtime" / "sandbox.log"
+DB_PATH  = _ROOT / "data" / "runtime" / "powerlayer.db"
+LOG_PATH = _ROOT / "data" / "runtime" / "powerlayer.log"
 
 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
 

@@ -193,16 +193,13 @@ step "10" "Creating global 'powerlayer' CLI command..."
 
 CLI_WRAPPER="/usr/local/bin/powerlayer"
 CLI_CONTENT="#!/bin/bash
-exec ${PYTHON} ${PROJECT_ROOT}/cli/__init__.py \"\$@\"
+exec ${PYTHON} ${PROJECT_ROOT}/cli/__init__.py --db ${PROJECT_ROOT}/data/runtime/powerlayer.db \"\$@\"
 "
 
-if [[ -f "$CLI_WRAPPER" ]]; then
-    ok "'powerlayer' command already exists at $CLI_WRAPPER"
-else
-    echo "$CLI_CONTENT" | sudo tee "$CLI_WRAPPER" > /dev/null
-    sudo chmod +x "$CLI_WRAPPER"
-    ok "Created global command: powerlayer"
-fi
+info "Writing global command at $CLI_WRAPPER..."
+echo "$CLI_CONTENT" | sudo tee "$CLI_WRAPPER" > /dev/null
+sudo chmod +x "$CLI_WRAPPER"
+ok "Configured global command: powerlayer"
 
 # ─────────────────────────────────────────────────────────────────────────────
 step "11" "Checking desktop tray support..."

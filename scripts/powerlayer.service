@@ -23,7 +23,7 @@ Type=simple
 
 # ExecStart is filled in by install.sh using the actual install path.
 # Do not edit manually — re-run install.sh to update.
-ExecStart=@@PYTHON@@ @@PROJECT_ROOT@@/tools/powerlayer_daemon.py --live --interval 7
+ExecStart=@@PYTHON@@ @@PROJECT_ROOT@@/tools/powerlayer_daemon.py --live --interval 7 --db @@PROJECT_ROOT@@/data/runtime/powerlayer.db
 
 # Restart the daemon automatically if it crashes (e.g. transient DB error).
 Restart=on-failure

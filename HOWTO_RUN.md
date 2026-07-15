@@ -37,6 +37,7 @@ Before testing the daemon, ensure all components (storage, collector, RF model, 
 To test how PowerLayer throttles background applications using your actual system processes and real-time battery levels:
 
 1. **Start the local daemon and tray**:
+To test with real-time data
    ```bash
    ./run_local.sh start
    ```
