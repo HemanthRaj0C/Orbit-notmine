@@ -69,7 +69,7 @@ class CorrectionLayer:
                 "WHERE observation_count > 0"
             ).fetchall()
             conn.close()
-            self._cache = {row[0]: float(row[1]) for row in rows}
+            self._cache = {row[0].lower(): float(row[1]) for row in rows}
             self._loaded_at = time.time()
             logger.debug("CorrectionLayer: loaded %d corrections.", len(self._cache))
         except Exception as exc:
@@ -80,7 +80,7 @@ class CorrectionLayer:
     def get_factor(self, app_name: str) -> float:
         """Return correction factor for app (1.0 = no correction)."""
         self._reload_if_stale()
-        return self._cache.get(app_name, 1.0)
+        return self._cache.get(app_name.lower(), 1.0)
 
     # ── Core correction ───────────────────────────────────────────────────────
 
@@ -130,6 +130,12 @@ class CorrectionLayer:
         new_idx = int(np.argmax(proba))
         new_label = LABEL_CLASSES[new_idx]
         new_conf  = float(proba[new_idx])
+
+        # If user explicitly set factor < 1.0 to always throttle this app,
+        # and the corrected label is a throttle action, force confidence to 1.0
+        # so it is not skipped by the PolicyEngine's confidence thresholds.
+        if factor < 1.0 and new_label != "active_needed":
+            new_conf = 1.0
 
         if new_label != label:
             logger.info(

@@ -340,25 +340,80 @@ def _daemon_running() -> bool:
             ["systemctl", "--user", "is-active", "powerlayer"],
             capture_output=True, text=True, timeout=5
         )
-        return result.stdout.strip() == "active"
+        if result.stdout.strip() == "active":
+            return True
     except Exception:
-        return False
+        pass
+
+    # Check local run pid
+    pid_path = Path("data/runtime/daemon.pid")
+    if pid_path.exists():
+        try:
+            pid = int(pid_path.read_text().strip())
+            os.kill(pid, 0)
+            return True
+        except Exception:
+            pass
+    return False
 
 
 def _daemon_stop() -> None:
+    logger.info("Stopping PowerLayer daemon...")
+    # 1. Try systemd
     try:
-        subprocess.run(["systemctl", "--user", "stop", "powerlayer"], timeout=10)
-        time.sleep(2)
+        subprocess.run(
+            ["systemctl", "--user", "stop", "powerlayer"],
+            capture_output=True, timeout=10
+        )
     except Exception:
         pass
+
+    # 2. Try local daemon PID
+    pid_path = Path("data/runtime/daemon.pid")
+    if pid_path.exists():
+        try:
+            pid = int(pid_path.read_text().strip())
+            os.kill(pid, 2)  # SIGINT for clean exit
+            for _ in range(5):
+                time.sleep(1)
+                try:
+                    os.kill(pid, 0)
+                except OSError:
+                    break
+        except Exception:
+            pass
 
 
 def _daemon_start() -> None:
+    logger.info("Starting PowerLayer daemon...")
+    # 1. Try systemd if service loaded
+    has_systemd = False
     try:
-        subprocess.run(["systemctl", "--user", "start", "powerlayer"], timeout=10)
-        time.sleep(3)
+        res = subprocess.run(
+            ["systemctl", "--user", "list-unit-files", "powerlayer.service"],
+            capture_output=True, text=True, timeout=5
+        )
+        if "powerlayer.service" in res.stdout:
+            has_systemd = True
     except Exception:
         pass
+
+    if has_systemd:
+        try:
+            subprocess.run(["systemctl", "--user", "start", "powerlayer"], timeout=10)
+            time.sleep(3)
+            return
+        except Exception:
+            pass
+
+    # 2. Fallback: local run_local.sh start
+    local_run = Path("run_local.sh")
+    if local_run.exists():
+        try:
+            subprocess.run(["./run_local.sh", "start"], capture_output=True, timeout=10)
+            time.sleep(3)
+        except Exception as e:
+            logger.error("Failed to start local daemon: %s", e)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -429,6 +484,25 @@ def main() -> None:
 
     duration_s = args.duration * 60
     db_path = Path(args.db)
+
+    # Dynamically select db path if default is used and systemd is installed
+    if args.db == str(_PROJECT_ROOT / "data" / "runtime" / "sandbox.db"):
+        has_systemd = False
+        try:
+            res = subprocess.run(
+                ["systemctl", "--user", "list-unit-files", "powerlayer.service"],
+                capture_output=True, text=True, timeout=5
+            )
+            if "powerlayer.service" in res.stdout:
+                has_systemd = True
+        except Exception:
+            pass
+
+        if has_systemd:
+            db_path = _PROJECT_ROOT / "data" / "runtime" / "powerlayer.db"
+            logger.info("Systemd service detected. Benchmarking on production DB: %s", db_path)
+        else:
+            logger.info("Local environment detected. Benchmarking on test DB: %s", db_path)
 
     # ── Phase A: Baseline ──────────────────────────────────────────────────────
     baseline_result = None

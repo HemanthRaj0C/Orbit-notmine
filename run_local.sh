@@ -141,18 +141,22 @@ usage() {
     echo -e "${BOLD}${CYAN}PowerLayer — Local Developer & Demo Runner${RESET}"
     echo -e "Usage: ./run_local.sh ${BOLD}COMMAND${RESET} [args]"
     echo ""
-    echo -e "  ${BOLD}1. Local Testing & Dev (real data → sandbox.db):${RESET}"
-    echo -e "    start                 Start daemon & tray in background"
+    echo -e "  ${BOLD}Core Commands:${RESET}"
+    echo -e "    start                 Start real local background daemon & tray (sandbox.db)"
+    echo -e "    start --demo          Launch simulated visual dashboard (auto-seeds, demo.db)"
     echo -e "    stop                  Stop background daemon & tray"
     echo -e "    restart               Restart background services"
+    echo -e "    benchmark             Run A/B battery saving benchmark test"
+    echo -e "    test                  Run the full 111 unit test suite"
+    echo -e "    e2e                   Run the quick 6-step model pipeline check"
+    echo ""
+    echo -e "  ${BOLD}CLI Commands (sandbox.db / local test):${RESET}"
     echo -e "    status                CLI: show live test database status"
     echo -e "    report                CLI: generate battery report"
     echo -e "    explain <app>         CLI: explain decisions for an app"
     echo -e "    override <app> [opt]  CLI: set overrides for an app"
-    echo -e "    e2e                   Dev: run quick 6-step model pipeline check"
     echo ""
-    echo -e "  ${BOLD}2. Mentor Demo (simulated data → demo.db):${RESET}"
-    echo -e "    demo                  Start simulation & terminal dashboard (auto-seeds)"
+    echo -e "  ${BOLD}Seeded Demo CLI Commands (demo.db / simulated data):${RESET}"
     echo -e "    seed                  Manually seed/refresh the demo database"
     echo -e "    demo-status           CLI: show status dashboard for seeded data"
     echo -e "    demo-report           CLI: show battery report for seeded data"
@@ -165,7 +169,15 @@ COMMAND="${1:-}"
 
 case "$COMMAND" in
     start)
-        start_local
+        if [[ "${2:-}" == "--demo" ]]; then
+            info "Auto-seeding demo database first..."
+            "$PYTHON" "$PROJECT_ROOT/tools/seed_demo_db.py" --db "$PROJECT_ROOT/data/runtime/demo.db" > /dev/null
+            ok "Demo database seeded."
+            info "Launching terminal dashboard in simulation mode (Ctrl+C to stop)..."
+            "$PYTHON" "$PROJECT_ROOT/tools/demo_live.py" --sim --fast
+        else
+            start_local
+        fi
         ;;
     stop)
         stop_local
@@ -174,6 +186,25 @@ case "$COMMAND" in
         stop_local
         sleep 1
         start_local
+        ;;
+    benchmark|eval)
+        ensure_model
+        "$PYTHON" "$PROJECT_ROOT/evaluation/benchmark.py" "${@:2}"
+        ;;
+    test)
+        info "Running PowerLayer Unit Test Suite..."
+        errors=0
+        for test_file in "$PROJECT_ROOT"/tests/test_*.py; do
+            info "Running $(basename "$test_file")..."
+            if ! "$PYTHON" "$test_file"; then
+                errors=$((errors + 1))
+            fi
+        done
+        if [[ $errors -eq 0 ]]; then
+            ok "All tests passed successfully!"
+        else
+            err "$errors test suite(s) failed."
+        fi
         ;;
     status)
         "$PYTHON" "$PROJECT_ROOT/cli/__init__.py" --db "$PROJECT_ROOT/data/runtime/sandbox.db" status "${@:2}"

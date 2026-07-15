@@ -79,7 +79,7 @@ class PolicyEngine:
 
         # Whitelist: never throttle these
         self._whitelist: frozenset[str] = frozenset(
-            config.get("whitelist", [])
+            [x.lower() for x in config.get("whitelist", [])]
         )
 
         # Confidence thresholds
@@ -123,7 +123,7 @@ class PolicyEngine:
         pid  = int(event.get("pid", 0))
 
         # ── 1. Whitelist check ────────────────────────────────────────────────
-        if app in self._whitelist:
+        if app.lower() in self._whitelist:
             return self._make(app, pid, "idle_likely", 1.0, "skip",
                               f"whitelisted: {app} is always protected")
 

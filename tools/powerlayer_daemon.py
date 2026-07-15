@@ -222,7 +222,7 @@ def main() -> None:
 
                     p = cfg.get("policy", {})
                     if p:
-                        engine._whitelist = frozenset(p.get("whitelist", []))
+                        engine._whitelist = frozenset([x.lower() for x in p.get("whitelist", [])])
                         engine._conf_threshold = float(p.get("confidence_threshold", 0.90))
                         engine._fresh_conf_threshold = float(p.get("fresh_start_confidence_threshold", 0.97))
                         engine._min_obs = int(p.get("min_observations_for_personalization", 20))

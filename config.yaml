@@ -38,7 +38,7 @@ policy:
   min_observations_for_personalization: 20    # how many observations before switching to relaxed threshold
 
 # ── Shadow Mode (MUST stay true until you trust the pipeline) ─
-shadow_mode: true    # when true, enforce() is NEVER called — decisions are only logged
+shadow_mode: false    # when true, enforce() is NEVER called — decisions are only logged
 
 # ── Enforcer ─────────────────────────────────────────────────
 enforcer:

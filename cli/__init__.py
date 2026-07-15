@@ -114,6 +114,28 @@ Examples:
         help="Time window to summarise (default: 24h)",
     )
 
+    # ── benchmark ─────────────────────────────────────────────────────────────
+    p_bench = sub.add_parser(
+        "benchmark",
+        help="Run A/B battery benchmark test comparing baseline and PowerLayer active states",
+    )
+    p_bench.add_argument(
+        "--duration", type=int, default=10,
+        help="Duration of each phase in minutes (default: 10)",
+    )
+    p_bench.add_argument(
+        "--sample-interval", type=int, default=30,
+        help="Battery sampling interval in seconds (default: 30)",
+    )
+    p_bench.add_argument(
+        "--skip-baseline", action="store_true",
+        help="Skip baseline phase (only measure PowerLayer active phase)",
+    )
+    p_bench.add_argument(
+        "--report-only", action="store_true",
+        help="Re-generate report from saved JSON results (no new measurement)",
+    )
+
     return parser
 
 
@@ -130,6 +152,17 @@ def main(argv: list[str] | None = None) -> None:
         cmd_override(db, app_name=args.app, mode=args.mode)
     elif args.command == "report":
         cmd_report(db, hours=args.hours)
+    elif args.command == "benchmark":
+        # Call benchmark's main with custom parameter array
+        from evaluation.benchmark import main as run_bench
+        bench_args = ["--db", str(db)]
+        bench_args += ["--duration", str(args.duration)]
+        bench_args += ["--sample-interval", str(args.sample_interval)]
+        if args.skip_baseline:
+            bench_args.append("--skip-baseline")
+        if args.report_only:
+            bench_args.append("--report-only")
+        run_bench(bench_args)
     else:
         parser.print_help()
 
