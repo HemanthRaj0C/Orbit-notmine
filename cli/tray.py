@@ -242,7 +242,17 @@ class PowerLayerTray:
     def __init__(self, db_path: Path) -> None:
         self._db_path = db_path
         self._reader = StatusReader(db_path)
-        self._shadow_mode = False
+        self._shadow_mode = True
+        
+        config_path = _PROJECT_ROOT / "config.yaml"
+        if config_path.exists():
+            try:
+                import yaml
+                with open(config_path) as f:
+                    cfg = yaml.safe_load(f) or {}
+                self._shadow_mode = bool(cfg.get("shadow_mode", True))
+            except Exception:
+                pass
 
         if not _GTK:
             logger.error("PyGObject / GTK3 not available. Cannot start tray.")
@@ -387,6 +397,19 @@ class PowerLayerTray:
         state = "enabled" if self._shadow_mode else "disabled"
         _send_desktop_notify("PowerLayer", f"Shadow mode {state}.")
         logger.info("Shadow mode %s via tray.", state)
+        
+        # Write to config.yaml
+        config_path = _PROJECT_ROOT / "config.yaml"
+        if config_path.exists():
+            try:
+                import yaml
+                with open(config_path, "r") as f:
+                    cfg = yaml.safe_load(f) or {}
+                cfg["shadow_mode"] = self._shadow_mode
+                with open(config_path, "w") as f:
+                    yaml.safe_dump(cfg, f, default_flow_style=False)
+            except Exception as e:
+                logger.error("Failed to save shadow_mode to config.yaml: %s", e)
 
     def _on_restart(self, _item: Gtk.MenuItem) -> None:
         try:

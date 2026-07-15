@@ -204,6 +204,32 @@ def main() -> None:
         cycle = 0
         _throttle_state: dict[str, str] = {}   # app_name → last action for notification transitions
         while True:
+            # ── Dynamic Config Reload ──────────────────────────────────────────
+            live_override = args.live
+            config_path = _ROOT / "config.yaml"
+            if config_path.exists():
+                try:
+                    import yaml
+                    with open(config_path) as f:
+                        cfg = yaml.safe_load(f) or {}
+
+                    s_mode = bool(cfg.get("shadow_mode", True))
+                    if live_override:
+                        s_mode = False
+
+                    engine._shadow = s_mode
+                    enforcer._shadow = s_mode
+
+                    p = cfg.get("policy", {})
+                    if p:
+                        engine._whitelist = frozenset(p.get("whitelist", []))
+                        engine._conf_threshold = float(p.get("confidence_threshold", 0.90))
+                        engine._fresh_conf_threshold = float(p.get("fresh_start_confidence_threshold", 0.97))
+                        engine._min_obs = int(p.get("min_observations_for_personalization", 20))
+                        engine._cooldown_seconds = int(p.get("cooldown_seconds", 60))
+                except Exception:
+                    pass
+
             cycle += 1
             now = int(time.time())
             fg_pid = get_active_window_pid()

@@ -292,12 +292,33 @@ Results are saved to:
 
 ---
 
+## Tunables & Shadow Mode Configuration
+
+PowerLayer reads configuration parameters from `config.yaml` located at the project root. The daemon dynamically reloads this file at the start of each cycle, meaning settings take effect instantly without restarting the daemon.
+
+### 🔕 Shadow Mode vs Live Throttling
+* **Shadow Mode (`shadow_mode: true`)**: PowerLayer acts as a diagnostic logging system. It calculates ML predictions, user overrides, and logs decisions (e.g. `allow`/`throttle`/`skip`) to the database, but **never actually restricts CPU or Network**. This is the default setting for safe validation.
+* **Live Throttling (`shadow_mode: false`)**: PowerLayer actively limits CPU shares and shapes network outbound bandwidth of background processes.
+
+### 🔌 Local vs Production Configurations
+* **Local Run (`./run_local.sh start`)**: Spawns the daemon locally with the `--live` flag. The daemon dynamically overrides `shadow_mode` to `false` for active local testing.
+* **Production Run (`install.sh`)**: The systemd service runs the daemon according to your `config.yaml` settings. Set `shadow_mode: false` in `config.yaml` to enable global active enforcement on boot.
+* **Desktop Tray Toggle**: Clicking the **Shadow Mode** checkbox in the system tray menu automatically writes the updated state directly back to your `config.yaml`. The running daemon will dynamically pick up the change within the next cycle (maximum 7 seconds).
+
+### 🛠️ Throttling Mechanisms
+When live throttling is active, PowerLayer performs two controls:
+1. **CPU Throttling (cgroups v2)**: Moves target processes into `/sys/fs/cgroup/.../powerlayer_real` and lowers `cpu.weight` to your configured value (e.g., `20` out of 100), ensuring they only receive a minor slice of CPU time.
+2. **Network Throttling (tc)**: Restricts outbound network traffic of the app to your configured speed limit (e.g. `300kbit`) using Linux Token Bucket Filter (`tbf`) shaping.
+
+---
+
 ## Project structure (final)
 
 ```
 powerlayer/
 ├── assets/icons/            # Tray icon PNGs (active/idle/throttle)
 ├── cli/
+├── run_local.sh             # Local developer & demo runner script
 │   ├── __init__.py          # status / report / explain / override commands
 │   └── tray.py              # GTK3 AppIndicator desktop tray icon
 ├── collector/               # proc_reader + psi_reader + monitor
