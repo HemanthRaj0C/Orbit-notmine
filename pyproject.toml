@@ -41,4 +41,4 @@ include = ["cli*", "collector*", "enforcer*", "evaluation*", "model*", "policy*"
 storage = ["schema.sql"]
 assets = ["icons/*.png"]
 model = ["artifacts/*.joblib"]
-"" = ["config.yaml"]
+"*" = ["config.yaml"]
