@@ -1,0 +1,35 @@
+# powerlayer-tray.service
+# ─────────────────────────────────────────────────────────────────────────────
+# PowerLayer — Desktop Tray Indicator (GTK3 AppIndicator)
+#
+# This is a USER-LEVEL systemd unit.
+# Starts the system tray icon automatically when the desktop session is ready.
+# Compatible with GNOME (with AppIndicator extension), KDE Plasma, XFCE,
+# Waybar, and any desktop supporting the StatusNotifierItem/AppIndicator protocol.
+#
+# Install via:  sudo ./install.sh
+# ─────────────────────────────────────────────────────────────────────────────
+
+[Unit]
+Description=PowerLayer Desktop Tray Indicator
+Documentation=file:///HOWTO_RUN.md
+# Start after the collector daemon is running and desktop is ready.
+After=graphical-session.target powerlayer.service
+Requires=powerlayer.service
+
+[Service]
+Type=simple
+
+# ExecStart is filled in by install.sh using the actual install path.
+ExecStart=@@PYTHON@@ @@PROJECT_ROOT@@/cli/tray.py --db @@PROJECT_ROOT@@/data/runtime/powerlayer.db
+
+Restart=on-failure
+RestartSec=5
+
+# Tray requires a display. This env var ensures GTK finds the correct session.
+Environment="DISPLAY=:0"
+Environment="PYTHONUNBUFFERED=1"
+Environment="POWERLAYER_ROOT=@@PROJECT_ROOT@@"
+
+[Install]
+WantedBy=graphical-session.target

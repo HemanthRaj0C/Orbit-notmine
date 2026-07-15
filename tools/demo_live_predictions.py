@@ -22,7 +22,9 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import shutil
 import sqlite3
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -71,6 +73,29 @@ def get_app_category(app_name: str) -> str:
     return "system_utility"
 
 # ── Core Loop ─────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# Desktop notification helper
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _notify(title: str, body: str, urgency: str = "normal") -> None:
+    """
+    Send a desktop notification if notify-send is available.
+    Falls back silently if not installed or no display is set.
+    """
+    if not shutil.which("notify-send"):
+        return
+    if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        return
+    try:
+        subprocess.run(
+            ["notify-send", "--urgency", urgency, "--icon", "battery-caution",
+             "--app-name", "PowerLayer", title, body],
+            timeout=3, check=False,
+        )
+    except Exception:
+        pass
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Real-time PowerLayer Pipeline Demo")
     parser.add_argument("--live", action="store_true", help="Run with active enforcement (non-shadow)")
@@ -142,6 +167,7 @@ def main() -> None:
 
     try:
         cycle = 0
+        _throttle_state: dict[str, str] = {}   # app_name → last action for notification transitions
         while True:
             cycle += 1
             now = int(time.time())
@@ -229,10 +255,27 @@ def main() -> None:
                       f"{label_col}{decision.label:<12}{reset} | {act_col}{decision.action:<9}{reset} | {decision.confidence:.2f}")
 
                 # Enforce the action if it's throttle, else release
+                # Track per-app state to fire notifications only on transitions.
+                prev = _throttle_state.get(app_name)
                 if decision.action == "throttle":
                     enforcer.enforce(decision)
+                    if prev != "throttle":
+                        _notify(
+                            f"PowerLayer: Throttling {app_name}",
+                            f"Detected as background/unused ({decision.confidence:.0%} conf). "
+                            "CPU & network rate-limited.",
+                            urgency="normal",
+                        )
+                    _throttle_state[app_name] = "throttle"
                 else:
                     enforcer.release(pid, app_name)
+                    if prev == "throttle":
+                        _notify(
+                            f"PowerLayer: Released {app_name}",
+                            "App is now active — throttling removed.",
+                            urgency="low",
+                        )
+                    _throttle_state[app_name] = decision.action
 
             time.sleep(args.interval)
 

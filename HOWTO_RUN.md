@@ -209,11 +209,115 @@ powerlayer/
 
 ---
 
-## What comes next (not built yet)
+## Step 5 — Install as a system service (permanent, auto-starts on boot)
 
-- `model/` — Random Forest predictor + per-user correction layer
-- `policy/` — `decide()` logic (whitelist, confidence threshold, shadow mode)
-- `enforcer/` — cgroup CPU throttling + tc network throttling
-- `cli/` — `powerlayer status / explain / override / report`
-- `powerlayer.service` — systemd unit
-- `evaluation/` — A/B benchmark scripts
+Run the one-command installer:
+```bash
+./install.sh
+```
+
+What it does (cross-distro: Fedora, Ubuntu, Arch, Debian):
+1. Detects Python 3.9+
+2. Installs Python dependencies (`requirements.txt`)
+3. Trains the ML model if not already done
+4. Registers two **user** systemd services:
+   - `powerlayer` — background collector + policy enforcement daemon
+   - `powerlayer-tray` — desktop tray icon indicator
+5. Grants passwordless `sudo tc` for network throttling
+6. Creates the global `powerlayer` CLI command at `/usr/local/bin/powerlayer`
+
+After install, the daemon starts immediately and auto-starts on every login.
+
+---
+
+## Step 6 — System tray icon (desktop integration)
+
+After installing, a **⚡ PowerLayer** icon appears in your system tray:
+- **GNOME** — requires the AppIndicator extension:
+  https://extensions.gnome.org/extension/615/appindicator-support/
+- **KDE Plasma** — works natively
+- **XFCE / MATE / Cinnamon** — works natively
+
+The tray icon shows:
+- 🔋 Current battery %
+- 🚦 Apps being throttled right now
+- Quick actions: Status dashboard, Report, Shadow mode toggle, Restart daemon
+
+Run the tray manually (for testing):
+```bash
+python cli/tray.py --db data/runtime/powerlayer.db
+```
+
+---
+
+## Step 7 — Service management
+
+```bash
+# Check if daemon is running
+systemctl --user status powerlayer
+
+# Live logs
+journalctl --user -u powerlayer -f
+
+# Stop / restart
+systemctl --user stop powerlayer
+systemctl --user restart powerlayer
+
+# Disable auto-start
+systemctl --user disable powerlayer powerlayer-tray
+```
+
+---
+
+## Step 8 — Battery benchmark (Phases A/B)
+
+Measure actual battery savings before vs. after PowerLayer:
+```bash
+# Full A/B benchmark (10 minutes per phase, unplug charger first)
+python evaluation/benchmark.py
+
+# Shorter test (5-minute phases)
+python evaluation/benchmark.py --duration 5
+
+# Skip baseline, only measure active phase
+python evaluation/benchmark.py --skip-baseline
+
+# Re-generate report from last saved run
+python evaluation/benchmark.py --report-only
+```
+
+Results are saved to:
+- `data/runtime/benchmark_results.json`   — raw data
+- `data/runtime/evaluation_report.md`     — formatted Markdown report
+
+---
+
+## Project structure (final)
+
+```
+powerlayer/
+├── assets/icons/            # Tray icon PNGs (active/idle/throttle)
+├── cli/
+│   ├── __init__.py          # status / report / explain / override commands
+│   └── tray.py              # GTK3 AppIndicator desktop tray icon
+├── collector/               # proc_reader + psi_reader + monitor
+├── enforcer/                # cgroup CPU throttle + tc network throttle
+├── evaluation/
+│   └── benchmark.py         # A/B battery drain test + Markdown report
+├── model/                   # Random Forest + correction layer
+├── policy/                  # PolicyEngine (decide + whitelist)
+├── scripts/
+│   ├── powerlayer.service       # systemd user unit (daemon)
+│   ├── powerlayer-tray.service  # systemd user unit (tray)
+│   └── train_base_model.py      # offline model training
+├── storage/                 # schema.sql + BatchedWriter + aggregator
+├── tests/                   # full test suite (111 tests)
+├── tools/
+│   ├── demo_live.py             # simulation dashboard
+│   ├── demo_live_predictions.py # live enforcement pipeline
+│   └── seed_demo_db.py          # seed demo data
+├── config.yaml              # all tunable settings
+├── install.sh               # cross-distro installer ← run this
+└── HOWTO_RUN.md             # this file
+```
+

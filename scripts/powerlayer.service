@@ -1,0 +1,53 @@
+# powerlayer.service
+# ─────────────────────────────────────────────────────────────────────────────
+# PowerLayer — Adaptive Battery Manager — Background Collector Daemon
+#
+# This is a USER-LEVEL systemd unit.
+# Install with:
+#   cp scripts/powerlayer.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now powerlayer
+#
+# Or use the provided installer:  sudo ./install.sh
+# ─────────────────────────────────────────────────────────────────────────────
+
+[Unit]
+Description=PowerLayer Adaptive Battery Manager (Collector Daemon)
+Documentation=file:///HOWTO_RUN.md
+# Wait for the graphical desktop session to be available so that
+# process enumeration and idle detection tools (xprintidle, dbus) work.
+After=graphical-session.target network-online.target
+
+[Service]
+Type=simple
+
+# ExecStart is filled in by install.sh using the actual install path.
+# Do not edit manually — re-run install.sh to update.
+ExecStart=@@PYTHON@@ @@PROJECT_ROOT@@/collector/monitor.py --config @@PROJECT_ROOT@@/config.yaml
+
+# Restart the daemon automatically if it crashes (e.g. transient DB error).
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# Give the process enough time for graceful shutdown (flush DB, release cgroups).
+TimeoutStopSec=30
+
+# ── cgroup delegation (required for CPU throttling without root) ──────────────
+# systemd will create a transient scope cgroup for this unit and delegate
+# management rights to the user process.  This is what allows us to write
+# cpu.weight into sub-cgroups without needing root.
+Delegate=yes
+
+# ── Environment ───────────────────────────────────────────────────────────────
+Environment="PYTHONUNBUFFERED=1"
+Environment="POWERLAYER_ROOT=@@PROJECT_ROOT@@"
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+# Logs are written to data/runtime/powerlayer.log by the Python logger.
+# You can also follow them via:  journalctl --user -u powerlayer -f
+
+[Install]
+# Start automatically when the user logs into a graphical session.
+WantedBy=graphical-session.target
