@@ -420,7 +420,7 @@ def _daemon_start() -> None:
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description="PowerLayer battery drain benchmark (A/B test)"
     )
@@ -445,7 +445,7 @@ def main() -> None:
         help="Re-generate report from saved JSON results (no new measurement)"
     )
     parser.add_argument("--debug", action="store_true")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,

@@ -35,9 +35,10 @@ powerlayer-daemon = "tools.powerlayer_daemon:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["cli*", "collector*", "enforcer*", "model*", "policy*", "storage*"]
+include = ["cli*", "collector*", "enforcer*", "evaluation*", "model*", "policy*", "storage*", "tools*"]
 
 [tool.setuptools.package-data]
 storage = ["schema.sql"]
 assets = ["icons/*.png"]
 model = ["artifacts/*.joblib"]
+"" = ["config.yaml"]

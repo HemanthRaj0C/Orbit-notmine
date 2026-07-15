@@ -173,5 +173,5 @@ class CorrectionLayer:
         )
         db_conn.commit()
         # Invalidate cache so next predict picks up the change
-        self._cache[app_name] = factor
+        self._cache[app_name.lower()] = factor
         logger.info("Correction set: %s → factor=%.2f", app_name, factor)
