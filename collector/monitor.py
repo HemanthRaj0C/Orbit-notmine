@@ -15,7 +15,7 @@ Architecture:
   ┌──────────────────────────────────────────────────────┐
   │  Watchdog Thread (inotify-based)                     │
   │    watches ~/Dropbox, ~/.config, etc.                │
-  │    on FS event → sets _fs_event_flag → poll drops   │
+  │    on FS event → sets _fs_event_flag → poll drops    │
   │    to fast interval immediately                      │
   └──────────────────────────────────────────────────────┘
   ┌──────────────────────────────────────────────────────┐
