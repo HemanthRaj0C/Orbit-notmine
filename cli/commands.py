@@ -56,7 +56,7 @@ def cmd_status(db_path: Path, limit: int = 20) -> None:
     conn = _open_db(db_path)
     now  = int(time.time())
 
-    header("PowerLayer  —  Status", f"DB: {db_path}  |  {fmt_datetime(now)}")
+    header("Orbit  —  Status", f"DB: {db_path}  |  {fmt_datetime(now)}")
 
     # ── Storage stats ─────────────────────────────────────────────────────────
     section("Storage")
@@ -390,7 +390,7 @@ def cmd_report(db_path: Path, hours: int = 24) -> None:
     now  = int(time.time())
     since = now - hours * 3600
 
-    header("PowerLayer  —  Report", f"Last {hours} hours  |  {fmt_datetime(since)} → now")
+    header("Orbit  —  Report", f"Last {hours} hours  |  {fmt_datetime(since)} → now")
 
     # ── Throttle activity ─────────────────────────────────────────────────────
     section("Throttle Activity")

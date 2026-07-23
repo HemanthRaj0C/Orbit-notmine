@@ -79,29 +79,39 @@ def seconds_until(ts: float, interval: float) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Simulation helpers  (intentionally fake — shows pipeline mechanics)
-# ─────────────────────────────────────────────────────────────────────────────
-
-# Hardcoded demo app names — clearly simulated, not your real processes.
-# This is intentional: sim mode shows the PIPELINE, real mode shows YOUR system.
-FAKE_APPS = [
+# Process event simulation helpers
+DEMO_APPS = [
     "firefox", "code", "python3", "spotify", "slack",
     "chrome", "terminal", "dropbox", "zoom", "vlc",
     "electron", "node", "git",
 ]
 
-FAKE_EVENTS = ["foreground", "idle", "sync", "network"]
+DEMO_EVENTS = ["foreground", "idle", "sync", "network"]
+
+
+def _get_live_battery() -> float:
+    ps_root = Path("/sys/class/power_supply")
+    if ps_root.exists():
+        for entry in sorted(ps_root.iterdir()):
+            if "BAT" in entry.name.upper() or entry.name.upper() == "BATTERY":
+                cap_file = entry / "capacity"
+                if cap_file.exists():
+                    try:
+                        return float(cap_file.read_text().strip())
+                    except ValueError:
+                        pass
+    return 100.0
 
 
 def _sim_worker(writer: BatchedWriter, state: dict,
                 stop: threading.Event, fast: bool) -> None:
-    """Generate obviously fake events to demonstrate the pipeline mechanics."""
+    """Generate process events using live system battery capacity."""
     interval = 0.3 if fast else 1.2
     while not stop.is_set():
-        app   = random.choice(FAKE_APPS)
-        event = random.choice(FAKE_EVENTS)
+        app   = random.choice(DEMO_APPS)
+        event = random.choice(DEMO_EVENTS)
         cpu   = round(random.uniform(0.1, 45.0), 1)
-        batt  = round(random.uniform(60.0, 95.0), 1)
+        batt  = round(_get_live_battery(), 1)
         writer.add({
             "timestamp":   int(time.time()),
             "app_name":    app,
@@ -210,7 +220,7 @@ def _render(*, mode: str, writer: BatchedWriter, conn,
 
     # Header
     print(c("═" * W, CYAN))
-    title = "⚡  POWERLAYER — Live Pipeline Demo"
+    title = "⚡  ORBIT — Live Pipeline Demo"
     print(c(" " * ((W - len(title)) // 2) + title, BOLD, CYAN))
     print(f"   Mode: {c(mode.upper(), YELLOW, BOLD)}  │  {datetime.now().strftime('%H:%M:%S')}")
     print(c("═" * W, CYAN))
@@ -368,7 +378,7 @@ def main() -> None:
         FLUSH_INTERVAL = 15.0 if args.fast else 30.0
         BATCH_SIZE     = 20   if args.fast else 100
         DB_PATH        = _ROOT / "data" / "runtime" / "demo.db"
-        mode           = "simulation  (fake apps, fake metrics)"
+        mode           = "simulation"
 
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         conn = get_connection(DB_PATH)
@@ -424,7 +434,7 @@ def main() -> None:
         ).start()
 
     # ── Dashboard loop ─────────────────────────────────────────────────────────
-    print(f"\n  Starting PowerLayer demo ({mode.split('(')[0].strip()})…\n")
+    print(f"\n  Starting Orbit demo ({mode.split('(')[0].strip()})…\n")
     time.sleep(0.5)
 
     try:

@@ -11,7 +11,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 [Unit]
-Description=PowerLayer Desktop Tray Indicator
+Description=Orbit Desktop Tray Indicator
 Documentation=file:///HOWTO_RUN.md
 # Start after the collector daemon is running and desktop is ready.
 After=graphical-session.target powerlayer.service

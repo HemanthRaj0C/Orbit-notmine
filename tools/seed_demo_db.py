@@ -23,7 +23,8 @@ import time
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parent.parent
-# Default output: demo.db (overridden via --db arg below)
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 random.seed(42)
 now = int(time.time())
@@ -40,8 +41,27 @@ APPS = {
 }
 
 
+def _get_live_battery() -> float:
+    ps_root = Path("/sys/class/power_supply")
+    if ps_root.exists():
+        for entry in sorted(ps_root.iterdir()):
+            if "BAT" in entry.name.upper() or entry.name.upper() == "BATTERY":
+                cap_file = entry / "capacity"
+                if cap_file.exists():
+                    try:
+                        return float(cap_file.read_text().strip())
+                    except ValueError:
+                        pass
+    return 100.0
+
+
 def seed(conn: sqlite3.Connection) -> None:
     print("Seeding demo data into DB...")
+
+    # Clear old demo events so new seed with current battery takes effect
+    conn.execute("DELETE FROM events")
+
+    live_bat = _get_live_battery()
 
     # ── Events ────────────────────────────────────────────────────────────────
     event_rows = []
@@ -49,7 +69,7 @@ def seed(conn: sqlite3.Connection) -> None:
         ts = now - offset
         for app, meta in APPS.items():
             cpu = max(0.0, meta["base_cpu"] + random.gauss(0, meta["base_cpu"] * 0.3))
-            bat = max(10.0, min(100.0, 82.0 - offset / 3600 * 4 + random.gauss(0, 0.5)))
+            bat = live_bat
             net = int(random.expovariate(1 / 50000)) if meta["category"] == "cloud_sync" else 0
             event_rows.append((ts, app, random.randint(1000, 9999),
                                 "snapshot", cpu, net, bat))

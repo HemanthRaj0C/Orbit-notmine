@@ -33,8 +33,8 @@ DEFAULT_DB = _ROOT / "data" / "runtime" / "sandbox.db"
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="powerlayer",
-        description="PowerLayer — Adaptive Linux Battery Manager",
+        prog="orbit",
+        description="Orbit — Adaptive Linux Battery Manager",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

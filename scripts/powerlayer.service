@@ -12,7 +12,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 [Unit]
-Description=PowerLayer Adaptive Battery Manager
+Description=Orbit Adaptive Battery Manager
 Documentation=file:///HOWTO_RUN.md
 # Wait for the graphical desktop session to be available so that
 # process enumeration and idle detection tools (xprintidle, dbus) work.

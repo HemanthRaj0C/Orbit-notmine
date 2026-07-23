@@ -279,10 +279,10 @@ class PowerLayerTray:
                 AppIndicator3.IndicatorCategory.APPLICATION_STATUS,
             )
             self._indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
-            self._indicator.set_title("PowerLayer")
+            self._indicator.set_title("Orbit")
         else:
             self._status_icon = Gtk.StatusIcon.new_from_icon_name("battery-good-symbolic")
-            self._status_icon.set_tooltip_text("PowerLayer")
+            self._status_icon.set_tooltip_text("Orbit")
             self._status_icon.connect("popup-menu", self._on_status_icon_popup)
 
         self._menu = self._build_menu()
@@ -294,7 +294,7 @@ class PowerLayerTray:
         menu = Gtk.Menu()
 
         # ── Header label ──────────────────────────────────────────────────────
-        self._lbl_status = Gtk.MenuItem(label="⚡ PowerLayer — Starting…")
+        self._lbl_status = Gtk.MenuItem(label="⚡ Orbit — Starting…")
         self._lbl_status.set_sensitive(False)
         menu.append(self._lbl_status)
 
@@ -356,10 +356,10 @@ class PowerLayerTray:
         # Status label
         if st["running"]:
             icon = _icon(_ICON_THROTTLE) if st["throttled_apps"] else _icon(_ICON_ACTIVE)
-            self._lbl_status.set_label("⚡ PowerLayer — Active")
+            self._lbl_status.set_label("⚡ Orbit — Active")
         else:
             icon = _icon(_ICON_IDLE)
-            self._lbl_status.set_label("⚡ PowerLayer — Idle / No DB")
+            self._lbl_status.set_label("⚡ Orbit — Idle / No DB")
 
         # Battery
         bat = st.get("battery_pct")
@@ -439,7 +439,7 @@ class PowerLayerTray:
         self._reader.start()
         self._schedule_update()
         GLib.timeout_add(500, self._update_menu)   # first update quickly
-        _send_desktop_notify("PowerLayer", "Tray indicator started. ⚡")
+        _send_desktop_notify("Orbit", "Tray indicator started. ⚡")
         Gtk.main()
 
 

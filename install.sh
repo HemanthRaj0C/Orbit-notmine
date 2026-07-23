@@ -42,7 +42,7 @@ PYTHON=""
 
 echo ""
 echo -e "${BOLD}${CYAN}══════════════════════════════════════════════════════${RESET}"
-echo -e "${BOLD}${CYAN}  PowerLayer — Installer                              ${RESET}"
+echo -e "${BOLD}${CYAN}  Orbit — Installer                                   ${RESET}"
 echo -e "${BOLD}${CYAN}══════════════════════════════════════════════════════${RESET}"
 echo ""
 echo -e "  Project: ${PROJECT_ROOT}"
@@ -153,12 +153,12 @@ step "8" "Starting services now..."
 # ─────────────────────────────────────────────────────────────────────────────
 
 systemctl --user start powerlayer.service
-ok "PowerLayer collector daemon is running."
+ok "Orbit collector daemon is running."
 
 # Tray app needs a display — only start it if $DISPLAY is set
 if [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
     systemctl --user start powerlayer-tray.service
-    ok "PowerLayer tray indicator is running."
+    ok "Orbit tray indicator is running."
 else
     warn "No display detected ($DISPLAY/$WAYLAND_DISPLAY not set). Tray will start on next login."
 fi
@@ -188,18 +188,19 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-step "10" "Creating global 'powerlayer' CLI command..."
+step "10" "Creating global 'orbit' CLI command..."
 # ─────────────────────────────────────────────────────────────────────────────
 
-CLI_WRAPPER="/usr/local/bin/powerlayer"
+CLI_WRAPPER="/usr/local/bin/orbit"
 CLI_CONTENT="#!/bin/bash
 exec ${PYTHON} ${PROJECT_ROOT}/cli/__init__.py --db ${PROJECT_ROOT}/data/runtime/powerlayer.db \"\$@\"
 "
 
 info "Writing global command at $CLI_WRAPPER..."
 echo "$CLI_CONTENT" | sudo tee "$CLI_WRAPPER" > /dev/null
-sudo chmod +x "$CLI_WRAPPER"
-ok "Configured global command: powerlayer"
+echo "$CLI_CONTENT" | sudo tee "/usr/local/bin/powerlayer" > /dev/null
+sudo chmod +x "$CLI_WRAPPER" /usr/local/bin/powerlayer
+ok "Configured global command: orbit (and powerlayer)"
 
 # ─────────────────────────────────────────────────────────────────────────────
 step "11" "Checking desktop tray support..."
@@ -234,14 +235,14 @@ fi
 
 echo ""
 echo -e "${BOLD}${GREEN}══════════════════════════════════════════════════════${RESET}"
-echo -e "${BOLD}${GREEN}  PowerLayer installed successfully!                  ${RESET}"
+echo -e "${BOLD}${GREEN}  Orbit installed successfully!                       ${RESET}"
 echo -e "${BOLD}${GREEN}══════════════════════════════════════════════════════${RESET}"
 echo ""
 echo -e "  ${BOLD}CLI Commands:${RESET}"
-echo -e "    powerlayer status          # Live dashboard"
-echo -e "    powerlayer report          # Battery savings report"
-echo -e "    powerlayer explain <app>   # Why was this app throttled?"
-echo -e "    powerlayer override spotify --always-allow"
+echo -e "    orbit status          # Live dashboard"
+echo -e "    orbit report          # Battery savings report"
+echo -e "    orbit explain <app>   # Why was this app throttled?"
+echo -e "    orbit override spotify --always-allow"
 echo ""
 echo -e "  ${BOLD}Service Management:${RESET}"
 echo -e "    systemctl --user status powerlayer"

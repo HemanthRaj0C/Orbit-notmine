@@ -138,7 +138,7 @@ stop_local() {
 
 # ── Usage / Help ──────────────────────────────────────────────────────────────
 usage() {
-    echo -e "${BOLD}${CYAN}PowerLayer — Local Developer & Demo Runner${RESET}"
+    echo -e "${BOLD}${CYAN}Orbit — Local Developer & Demo Runner${RESET}"
     echo -e "Usage: ./run_local.sh ${BOLD}COMMAND${RESET} [args]"
     echo ""
     echo -e "  ${BOLD}Core Commands:${RESET}"
