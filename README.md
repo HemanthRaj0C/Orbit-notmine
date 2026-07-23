@@ -1,6 +1,6 @@
-# PowerLayer — How to Run Everything
+# Orbit — How to Run Everything
 
-All commands are executed from the `powerlayer` root folder:
+All commands are executed from the repository root folder:
 ```bash
 cd /home/hemanth/Ccp_CSBS/powerlayer
 ```
@@ -9,7 +9,7 @@ cd /home/hemanth/Ccp_CSBS/powerlayer
 
 ## Command Reference
 
-PowerLayer provides a unified wrapper script (`./run_local.sh`) to run, test, and benchmark the system without modifying your system settings.
+Orbit provides a unified wrapper script (`./run_local.sh`) to run, test, and benchmark the system without modifying your system settings.
 
 | Command | Action | Database Used |
 | :--- | :--- | :--- |
@@ -29,15 +29,15 @@ Before testing the daemon, ensure all components (storage, collector, RF model, 
 ```bash
 ./run_local.sh test
 ```
-* **Expected Output:** `Results: 111 passed, 0 failed`
+* **Expected Output:** `Results: 111 passed, 0 failed` (across all 6 test suites)
 
 ---
 
 ## 2. Local Testing with Real Data
-To test how PowerLayer throttles background applications using your actual system processes and real-time battery levels:
+To test how Orbit throttles background applications using your actual system processes and real-time battery levels:
 
 1. **Start the local daemon and tray**:
-To test with real-time data
+   To test with real-time data:
    ```bash
    ./run_local.sh start
    ```
@@ -58,14 +58,14 @@ To test with real-time data
 ---
 
 ## 3. Mentor Demonstration (Simulated Dashboard)
-To present the visual terminal visualizer to a mentor using simulated, fast-forwarded events:
+To present the visual terminal visualizer to a mentor using simulated events:
 ```bash
 ./run_local.sh start --demo
 ```
 * **What it does**: 
-  1. Auto-seeds `demo.db` with realistic application events.
-  2. Launches the fast-forwarded simulation visualizer (`tools/demo_live.py`).
-  3. Displays CPU usage, battery drains, dynamic cgroup buffer flushes, and active ML-based throttling decisions in real-time.
+  1. Auto-seeds `demo.db` with realistic application events and your current live battery percentage.
+  2. Launches the simulation visualizer (`tools/demo_live.py`).
+  3. Displays CPU usage, battery capacity, dynamic cgroup buffer flushes, and active ML-based throttling decisions in real-time.
 * **To check demo statistics on the CLI**:
   * `./run_local.sh demo-status`
   * `./run_local.sh demo-report`
@@ -74,9 +74,9 @@ To present the visual terminal visualizer to a mentor using simulated, fast-forw
 ---
 
 ## 4. Run the Battery Savings Benchmark (Phases A/B)
-To verify the exact battery savings (% per hour and runtime extension) of your computer with and without PowerLayer:
+To verify the exact battery savings (% per hour and runtime extension) of your computer with and without Orbit:
 ```bash
-# Run 10-minute baseline (PowerLayer OFF) + 10-minute active (PowerLayer ON)
+# Run 10-minute baseline (Orbit OFF) + 10-minute active (Orbit ON)
 ./run_local.sh benchmark
 
 # For a quicker test (5 minutes per phase)
@@ -88,7 +88,7 @@ To verify the exact battery savings (% per hour and runtime extension) of your c
 ---
 
 ## 5. Production Service Installation (Boot Auto-Start)
-To deploy PowerLayer globally on your machine as a system-wide service:
+To deploy Orbit globally on your machine as a system-wide service:
 ```bash
 chmod +x install.sh
 ./install.sh
@@ -96,10 +96,10 @@ chmod +x install.sh
 * **What it does**: 
   1. Installs package dependencies and registers `powerlayer.service` (daemon) + `powerlayer-tray.service` (tray indicator) in systemd.
   2. Sets up passwordless `sudo` rules for `tc` network shaping.
-  3. Registers a global `/usr/local/bin/powerlayer` command link.
+  3. Registers a global `/usr/local/bin/orbit` command link.
 * **Production Commands**: Once installed, you can use the global CLI command directly:
-  * `powerlayer status`
-  * `powerlayer report`
-  * `powerlayer explain <app>`
-  * `powerlayer override <app> --always-allow`
-  * `powerlayer benchmark`
+  * `orbit status`
+  * `orbit report`
+  * `orbit explain <app>`
+  * `orbit override <app> --always-allow`
+  * `orbit benchmark`
